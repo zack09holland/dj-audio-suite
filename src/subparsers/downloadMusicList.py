@@ -61,6 +61,15 @@ def download_music_from_xlsx(args):
                     {"key": "FFmpegExtractAudio", "preferredcodec": "alac"},
                     {"key": "FFmpegMetadata"},
                     {"key": "EmbedThumbnail"},
+                    {
+                        "key": "--ppa 'EmbedThumbnail+ffmpeg_o:-c:v mjpeg -vf crop="
+                        '"'
+                        "'if(gt(ih,iw),iw,ih)'"
+                        ":"
+                        "'if(gt(iw,ih),ih,iw)'"
+                        '"'
+                        "'"
+                    },
                 ],
                 "parse_metadata": [
                     ":(?P<meta_comment>)",
