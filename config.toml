@@ -1,0 +1,12 @@
+[project]
+name="DJ Music App"
+version="0.0.1"
+
+[general]
+enabled_commands=[
+  "downloadMusicList",
+  "audioMigration",
+  "localMusicSearch",
+  "convertToALAC"
+]
+
