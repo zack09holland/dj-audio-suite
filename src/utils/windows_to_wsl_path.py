@@ -1,5 +1,4 @@
 import os
-import sys
 
 
 def windows_to_wsl_path(win_path):

@@ -1,13 +1,14 @@
-from src.config import get_config
 import os
 import pandas as pd
-import subprocess
 import yt_dlp
+from yt_dlp.postprocessor import MetadataParserPP
+
 from src.config import get_logger
 
 logger = get_logger(__name__)
 
 
+# --------------------------------- download_music_from_xlsx ---------------------------------
 def download_music_from_xlsx(args):
     logger.info(args)
     file = args.get("file")
@@ -23,7 +24,7 @@ def download_music_from_xlsx(args):
         logger.error(f"Error reading file {file}: {e}")
         return
 
-    # Create output directory if specified and doesn't exist
+    # Create output directory if specified and doesn't exist)
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir)
         logger.info(f"Created output directory: {output_dir}")
@@ -55,31 +56,52 @@ def download_music_from_xlsx(args):
 
             ydl_opts = {
                 "format": "bestaudio/best",
-                "extractaudio": True,
-                "outtmpl": outtmpl,
+                "extractaudio": True,  # Download only audio
+                "outtmpl": outtmpl,  # Output template
+                "writethumbnail": True,  # Write thumbnail to file
                 "postprocessors": [
-                    {"key": "FFmpegExtractAudio", "preferredcodec": "alac"},
-                    {"key": "FFmpegMetadata"},
-                    {"key": "EmbedThumbnail"},
                     {
-                        "key": "--ppa 'EmbedThumbnail+ffmpeg_o:-c:v mjpeg -vf crop="
-                        '"'
-                        "'if(gt(ih,iw),iw,ih)'"
-                        ":"
-                        "'if(gt(iw,ih),ih,iw)'"
-                        '"'
-                        "'"
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "m4a",
+                    },  # Use m4a for audio
+                    {
+                        # Embed metadata into the file
+                        "key": "FFmpegMetadata",
+                        "add_metadata": True,
+                    },
+                    {"key": "EmbedThumbnail"},  # Embed thumbnail into the file
+                    {
+                        "key": "MetadataParser",  # Custom metadata parser
+                        "when": "pre_process",
+                        "actions": [
+                            (
+                                MetadataParserPP.Actions.INTERPRET,
+                                "%(description,webpage_url).4s",  # Clears the comment field
+                                "(?P<meta_comment>)",
+                            ),
+                            (
+                                MetadataParserPP.Actions.INTERPRET,
+                                "%(upload_date,release_year).4s",  # Extracts the year from upload date
+                                "(?P<meta_date>.+)",
+                            ),
+                        ],
                     },
                 ],
-                "parse_metadata": [
-                    ":(?P<meta_comment>)",
-                    "release_year:(?P<meta_year>\\d{4})",
+                "postprocessor_args": [
+                    "-c:v",  # Set video codec
+                    "mjpeg",  # force mjpeg encoding (for jpg thumbnails)
+                    "-vf",  # Video filter for cropping
+                    "crop='if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'",  # center crop to square,
                 ],
                 "quiet": False,  # Show progress
-                "progress_hooks": [lambda d: logger.info(d.get("_percent_str", ""))],
+                # "logger": logger,  # Use custom logger
+                "progress_hooks": [
+                    lambda d: logger.info(d.get("_percent_str", ""))
+                ],  # Log download progress
             }
 
             logger.info(f"Downloading: {url}")
+
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
 

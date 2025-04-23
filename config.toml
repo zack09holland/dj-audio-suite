@@ -1,12 +1,13 @@
 [project]
 name="DJ Music App"
-version="0.0.1"
+version="1.0.0"
 
 [general]
 enabled_commands=[
   "downloadMusicList",
   "audioMigration",
   "localMusicSearch",
-  "convertToALAC"
+  "convertToALAC",
+  "getYouTubeUrls"
 ]
 

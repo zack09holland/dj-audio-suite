@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 
 # Constants
 DEFAULT_DESTINATIONS = [
-    "/home/zack09holland/zack0/Music/Categories/",
+    "/mnt/c/Users/zack09holland/Music/Categories/",
     "/mnt/m/Categories/",
 ]
 SUPPORTED_FORMATS = (".mp3", ".m4a", ".flac", ".wav", ".opus")
@@ -39,6 +39,7 @@ GENRE_MAPPING = {
     "Dance": "Dance",
     "Hard Techno": "Techno",
     "Techno": "Techno",
+    "Rap": "Hip Hop",
 }
 
 

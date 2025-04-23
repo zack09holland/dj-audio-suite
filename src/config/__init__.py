@@ -1,43 +1,42 @@
 import pathlib
-from pathlib import Path
-import tomli
-import logging
-from functools import wraps
-import time
-from logging import StreamHandler, FileHandler
-from colorama import Fore, Style
 import sys
+import time
+import logging
+import tomli
+from functools import wraps
 
+from src.config.ColorFormatter import ColorFormatter
+
+
+# --------------------------------------- Load Configuration ---------------------------------------
 path = pathlib.Path(__file__).parent.parent.parent / "config.toml"
 with path.open(mode="rb") as fp:
     _conf = tomli.load(fp)
     print(_conf)
 
 
-# Define a custom formatter with colors
-class ColoredFormatter(logging.Formatter):
-    COLORS = {
-        "DEBUG": Fore.CYAN,
-        "INFO": Fore.GREEN,
-        "WARNING": Fore.YELLOW,
-        "ERROR": Fore.RED,
-        "CRITICAL": Fore.MAGENTA,
-    }
-
-    def format(self, record):
-        log_color = self.COLORS.get(record.levelname, "")
-        reset = Style.RESET_ALL
-
-        # Color the level name (e.g., ERROR, INFO, DEBUG)
-        record.levelname = f"{log_color}{record.levelname}{reset}"
-        return super().format(record)
-
-
-# Create a stream handler with color support
+# --------------------------------------- Logger Stream Handler ---------------------------------------
+# - Create a stream handler to handle colorized logging output
 stream_handler = logging.StreamHandler(sys.stdout)
-stream_handler.setFormatter(ColoredFormatter("%(levelname)s: %(message)s"))
+stream_handler.setFormatter(ColorFormatter("%(levelname)s: %(message)s"))
+
+ROOT_DIR = str(pathlib.Path(__file__).parent.parent)
+
+l_formatter = logging.Formatter(
+    "%(asctime)s | %(levelname)s | [%(name)s@%(funcName)s] | %(message)s",
+    "%Y-%m-%d " "%H:%M:%S",
+)
 
 
+stream_handler.setFormatter(l_formatter)
+
+# File handler for logging to a file
+f_handler = logging.FileHandler("app.log")
+f_handler.setLevel(logging.DEBUG)
+f_handler.setFormatter(l_formatter)
+
+
+# --------------------------------------- get_config ---------------------------------------
 def get_config(section: str, p_name: str = None, default_value=None):
     if section not in _conf.keys():
         raise ValueError(f'Invalid config value given "{section}"')
@@ -51,42 +50,18 @@ def get_config(section: str, p_name: str = None, default_value=None):
             config_data = config_data.get(key)
         else:
             config_data = None
+
     return config_data if config_data else default_value
 
 
-# def get_env_nodes(env: str):
-#     nodes = get_config("envs_nods", env)
-#     return nodes if nodes else []
-
-
-# def get_envs():
-#     return list(get_config("envs_nods").keys())
-
-
+# --------------------------------------- get_enabled_commands ---------------------------------------
+# - Get a list of enabled commands from the configuration
 def get_enabled_commands():
     return get_config("general", "enabled_commands")
 
 
-def get_available_dump_format():
-    return ["p", "d", "t", "c"]
-
-
-ROOT_DIR = str(Path(__file__).parent.parent)
-
-l_formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)s | [%(name)s@%(funcName)s] | %(message)s",
-    "%Y-%m-%d " "%H:%M:%S",
-)
-
-stream_handler = StreamHandler()
-# stream_handler.setLevel(logging.INFO)
-stream_handler.setFormatter(l_formatter)
-
-f_handler = FileHandler("app.log")
-f_handler.setLevel(logging.DEBUG)
-f_handler.setFormatter(l_formatter)
-
-
+# --------------------------------------- get_logger ---------------------------------------
+# - Create a logger with colored output
 def get_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
@@ -96,9 +71,9 @@ def get_logger(name):
         logger.handlers.clear()
 
     # Create and configure colored stream handler
-    colored_formatter = ColoredFormatter("%(levelname)s: %(message)s")
+    color_formatter = ColorFormatter("%(levelname)s: %(message)s")
     stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(colored_formatter)
+    stream_handler.setFormatter(color_formatter)
 
     # Add the colored handler
     logger.addHandler(stream_handler)
@@ -115,6 +90,8 @@ def get_logger(name):
     return logger
 
 
+# --------------------------------------- show_me_time ---------------------------------------
+# - Decorator to log the execution time of a function
 def show_me_time(app_logger):
     def timely(func):
         @wraps(func)
