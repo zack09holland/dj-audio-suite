@@ -2,7 +2,7 @@ import pathlib
 import sys
 import time
 import logging
-import tomli
+import tomli  # type: ignore
 from functools import wraps
 
 from src.config.ColorFormatter import ColorFormatter

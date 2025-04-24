@@ -1,4 +1,4 @@
-from tinytag import TinyTag
+from tinytag import TinyTag  # type: ignore
 import os
 import shutil
 from colorama import init, Fore, Style
