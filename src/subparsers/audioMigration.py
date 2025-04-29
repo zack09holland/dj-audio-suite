@@ -9,9 +9,10 @@ init()
 logger = get_logger(__name__)
 
 # Constants
+DEFAULT_SOURCE = "/mnt/c/Users/zack09holland/Downloads/refined-audio/"
 DEFAULT_DESTINATIONS = [
     "/mnt/c/Users/zack09holland/Music/Categories/",
-    "/mnt/m/Categories/",
+    # "/mnt/m/Categories/",
 ]
 SUPPORTED_FORMATS = (".mp3", ".m4a", ".flac", ".wav", ".opus")
 
@@ -42,7 +43,7 @@ GENRE_MAPPING = {
     "Rap": "Hip Hop",
 }
 
-
+# --------------------------------- get_genre ---------------------------------
 def get_genre(file_path):
     """Extract genre metadata from audio file"""
     try:
@@ -55,74 +56,72 @@ def get_genre(file_path):
         logger.error(f"Error reading metadata for {file_path}: {e}")
         return None
 
-
+# --------------------------------- get_genre_folder ---------------------------------
 def get_genre_folder(genre):
     """Map genre to folder path"""
     return GENRE_MAPPING.get(genre, "Unknown")
 
-
+# --------------------------------- ensure_directory_exists ---------------------------------
 def ensure_directory_exists(path):
     """Create directory if it doesn't exist"""
     if not os.path.exists(path):
         os.makedirs(path)
         logger.info(f"Created directory: {path}")
 
-
-def process_file(file_path, base_dest, usb_dest, transfer_type):
-    """Process individual music file"""
+# --------------------------------- process_file ---------------------------------
+def process_file(file_path, destinations, transfer_type):
+    """Process individual music file and move/copy to destination(s)."""
     genre = get_genre(file_path)
     if not genre:
         logger.warning(f"No genre found for {os.path.basename(file_path)}")
         return False
 
-    genre_folder = get_genre_folder(genre)
-    main_dest = os.path.join(base_dest, genre_folder)
-    usb_dest_full = os.path.join(usb_dest, genre_folder)
-
-    ensure_directory_exists(main_dest)
-    ensure_directory_exists(usb_dest_full)
-
     filename = os.path.basename(file_path)
+    first = True  # For move-once logic
 
-    if transfer_type == "move":
-        shutil.move(file_path, os.path.join(main_dest, filename))
-        logger.info(f"{Fore.CYAN}Moved{Style.RESET_ALL} {filename} to {main_dest}")
-    elif transfer_type == "copy":
-        shutil.copy(file_path, os.path.join(usb_dest_full, filename))
-        logger.info(f"{Fore.CYAN}copied{Style.RESET_ALL} {filename} to {usb_dest_full}")
-    else:  # Default is move + copy
-        shutil.move(file_path, os.path.join(main_dest, filename))
-        shutil.copy(
-            os.path.join(main_dest, filename), os.path.join(usb_dest_full, filename)
-        )
-        logger.info(
-            f"{Fore.CYAN}Moved{Style.RESET_ALL} {filename} to {main_dest} | {Fore.CYAN}copied{Style.RESET_ALL} to {usb_dest_full}"
-        )
+    for dest in destinations:
+        genre_folder = get_genre_folder(genre)
+        full_dest = os.path.join(dest, genre_folder)
+        ensure_directory_exists(full_dest)
+
+        dest_file_path = os.path.join(full_dest, filename)
+
+        if transfer_type == "move" and first:
+            shutil.move(file_path, dest_file_path)
+            logger.info(f"{Fore.CYAN}Moved{Style.RESET_ALL} {filename} to {full_dest}")
+            first = False
+        elif transfer_type == "copy":
+            shutil.copy(file_path, dest_file_path)
+            logger.info(f"{Fore.CYAN}Copied{Style.RESET_ALL} {filename} to {full_dest}")
+        elif transfer_type == "both":
+            if first:
+                shutil.move(file_path, dest_file_path)
+                logger.info(f"{Fore.CYAN}Moved{Style.RESET_ALL} {filename} to {full_dest}")
+                first = False
+            else:
+                shutil.copy(os.path.join(destinations[0], genre_folder, filename), dest_file_path)
+                logger.info(f"{Fore.CYAN}Copied{Style.RESET_ALL} {filename} to {full_dest}")
 
     return True
 
 
+# --------------------------------- move_music_by_genre ---------------------------------
 def move_music_by_genre(args):
     """Main function to organize music files by genre"""
-    source = args.get("source")
+    source = args.get("source") or DEFAULT_SOURCE
     destinations = args.get("destinations") or DEFAULT_DESTINATIONS
     transfer_type = args.get("transferType")
 
-    if not os.path.exists(source):
-        logger.error(f"Source path does not exist: {source}")
+    if not os.path.exists(source) or not os.path.isdir(source):
+        logger.error(f"Invalid source path: {source}")
         return
-
-    if not os.path.isdir(source):
-        logger.error(f"Source must be a directory: {source}")
-        return
-
-    if len(destinations) < 2:
-        logger.warning("Only one destination provided, USB copy will be skipped")
-        destinations.append(destinations[0])  # Use same folder for both
 
     genre_counts = {}
     processed_files = 0
-
+    
+    logger.info(f"Starting music migration from {source} to {destinations[0]} and {destinations[1]}")
+    
+    # Loop through all files in the source directory
     for root, _, files in os.walk(source):
         for file in files:
             if file.lower().endswith(SUPPORTED_FORMATS):
@@ -138,17 +137,17 @@ def move_music_by_genre(args):
         print(f"{Fore.BLUE}{genre}:{Style.RESET_ALL} {count}")
     print(f"Total files processed: {processed_files}")
 
-
+# --------------------------------- create_subparser ---------------------------------
 def create_subparser(subparsers):
     """Create CLI subparser"""
     parser = subparsers.add_parser(
         "audioMigration",
         help="Organize music files by genre",
-        aliases=["migrate", "audiomigrate", "am", "transfer"],
+        aliases=["migrate", "audiomigrate", "am", "transfer", "move"],
     )
 
     parser.add_argument(
-        "--source", required=True, help="Source directory containing music files"
+        "--source", help="Source directory containing music files"
     )
     parser.add_argument(
         "--destinations", nargs="+", help="Destination folders (primary and USB)"

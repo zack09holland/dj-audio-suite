@@ -6,3 +6,16 @@ colorama
 openpyxl
 mutagen
 yt-dlp
+
+beautifulsoup4==4.9.1
+bs4==0.0.1
+certifi==2020.4.5.2
+chardet==3.0.4
+fake-headers==1.0.2
+html5lib==1.0.1
+idna==2.9
+requests
+six==1.15.0
+soupsieve==2.0.1
+urllib3==1.26.5
+webencodings==0.5.1

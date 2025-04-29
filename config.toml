@@ -8,6 +8,8 @@ enabled_commands=[
   "audioMigration",
   "localMusicSearch",
   "convertToALAC",
-  "getYouTubeUrls"
+  "getYouTubeUrls",
+  "search_1001tracklists",
+  "cleanMetadata"
 ]
 

@@ -1,14 +1,18 @@
 import os
 import pandas as pd  # type: ignore
 import yt_dlp
-from yt_dlp.postprocessor import MetadataParserPP
+from yt_dlp.postprocessor import download_music_list
+
+# Utils
+from src.utils.ytDownloader import download_file
 
 from src.config import get_logger
 
 logger = get_logger(__name__)
 
 
-# --------------------------------- download_music_from_xlsx ---------------------------------
+# --------------------------------------- download_music_from_xlsx ---------------------------------------
+# - Download music files from an Excel file containing URLs
 def download_music_from_xlsx(args):
     logger.info(args)
     file = args.get("file")
@@ -18,116 +22,85 @@ def download_music_from_xlsx(args):
         logger.error(f"File {file} does not exist")
         return
 
+    # Load all sheet names
+    xls = pd.ExcelFile(file)
+    sheet_names = xls.sheet_names
+
     try:
-        df = pd.read_excel(file, sheet_name="music-download-list")
+        # Try loading from available sheets
+        if "music-download-list" in sheet_names:
+            df = pd.read_excel(file, sheet_name="music-download-list")
+        elif "Found" in sheet_names:
+            df = pd.read_excel(file, sheet_name="Found")
+        elif "found" in sheet_names:
+            df = pd.read_excel(file, sheet_name="found")
+        else:
+            logger.error("No suitable sheet found in Excel file.")
+            return
     except Exception as e:
-        logger.error(f"Error reading file {file}: {e}")
+        logger.error(f"Error reading Excel file: {e}")
         return
 
-    # Create output directory if specified and doesn't exist)
+    # Check if the DataFrame is empty
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir)
         logger.info(f"Created output directory: {output_dir}")
 
+    # Check if the DataFrame has the 'URL' column
     for index, row in df.iterrows():
         try:
             url = row["URL"]
         except KeyError as e:
-            logger.error(f"Error reading URL from row {index}: {e}")
+            logger.error(f"Missing 'URL' column at row {index}: {e}")
             continue
 
         try:
-            # Extract metadata without downloading
+            # Simulate metadata extraction
             with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
                 info_dict = ydl.extract_info(url, download=False)
-                title = info_dict.get("title", "Unknown Title")
-                uploader = info_dict.get("uploader", "Unknown Uploader")
+                title = (
+                    info_dict.get("title", "Unknown Title").strip().replace("/", "-")
+                )
+                uploader = (
+                    info_dict.get("uploader", "Unknown Uploader")
+                    .strip()
+                    .replace("/", "-")
+                )
 
-            # Determine filename format
+            # Build filename like "artist - title.m4a"
             if "-" in title:
-                filename = f"{title}.%(ext)s"
+                base_name = f"{title}.m4a"
             else:
-                filename = f"{uploader} - {title}.%(ext)s"
+                base_name = f"{uploader} - {title}.m4a"
 
-            # Set output template
-            outtmpl = filename
-            if output_dir:
-                outtmpl = os.path.join(output_dir, filename)
+            # Check if file already exists
+            full_path = os.path.join(output_dir, base_name) if output_dir else base_name
+            if os.path.exists(full_path):
+                logger.info(f"Already exists, skipping: {full_path}")
+                continue
 
-            ydl_opts = {
-                "format": "bestaudio/best",
-                "extractaudio": True,  # Download only audio
-                "outtmpl": outtmpl,  # Output template
-                "writethumbnail": True,  # Write thumbnail to file
-                "postprocessors": [
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "m4a",
-                    },  # Use m4a for audio
-                    {
-                        # Embed metadata into the file
-                        "key": "FFmpegMetadata",
-                        "add_metadata": True,
-                    },
-                    {"key": "EmbedThumbnail"},  # Embed thumbnail into the file
-                    {
-                        "key": "MetadataParser",  # Custom metadata parser
-                        "when": "pre_process",
-                        "actions": [
-                            (
-                                MetadataParserPP.Actions.INTERPRET,
-                                "%(description,webpage_url).4s",  # Clears the comment field
-                                "(?P<meta_comment>)",
-                            ),
-                            (
-                                MetadataParserPP.Actions.INTERPRET,
-                                "%(upload_date,release_year).4s",  # Extracts the year from upload date
-                                "(?P<meta_date>.+)",
-                            ),
-                        ],
-                    },
-                ],
-                "postprocessor_args": [
-                    "-c:v",  # Set video codec
-                    "mjpeg",  # force mjpeg encoding (for jpg thumbnails)
-                    "-vf",  # Video filter for cropping
-                    "crop='if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'",  # center crop to square,
-                ],
-                "quiet": False,  # Show progress
-                # "logger": logger,  # Use custom logger
-                "progress_hooks": [
-                    lambda d: logger.info(d.get("_percent_str", ""))
-                ],  # Log download progress
-            }
+            # Create filename template to output with yt-dlp
+            outtmpl = full_path.replace(".m4a", ".%(ext)s")
 
-            logger.info(f"Downloading: {url}")
+            logger.info(f"Downloading {url} to {outtmpl}")
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
-
-            logger.info(f"Successfully downloaded: {filename.replace('%(ext)s', '')}")
+            download_file(outtmpl, url)
 
         except Exception as e:
-            logger.error(f"Error processing URL {url}: {str(e)}")
+            logger.error(f"Error processing URL {url}: {e}")
 
 
+# --------------------------------------- create_subparser ---------------------------------------
 def create_subparser(subparsers):
     command_parser = subparsers.add_parser(
         "downloadMusicList",
         help="Download music from xlsx file",
         aliases=["download", "download-music", "dl"],
     )
-
-    # Required arguments
     command_parser.add_argument(
         "--file", required=True, help="The xlsx file containing music download list"
     )
-
-    # Optional arguments
     command_parser.add_argument(
-        "--output",
-        default=None,
-        help="Directory to save downloaded files (default: current directory)",
+        "--output", default=None, help="Directory to save downloaded files"
     )
-
     command_parser.set_defaults(func=download_music_from_xlsx)

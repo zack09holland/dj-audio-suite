@@ -1,15 +1,14 @@
-from src.config import get_config
 import os
-import pandas as pd
 import subprocess
-import yt_dlp
 from src.config import get_logger
 
 logger = get_logger(__name__)
 
 
+# --------------------------------------- local_music_search ---------------------------------------
+#  - Continuous search for music files by artist or song name
 def local_music_search(args):
-    """Continuous search for music files by artist or song name"""
+
     search_term = args.get("search_term")
     music_dir = args.get("music_dir") if args.get("music_dir") else "."
 
@@ -41,6 +40,7 @@ def local_music_search(args):
             logger.error(f"Search error: {e}")
 
 
+# --------------------------------------- _perform_search ---------------------------------------
 def _perform_search(search_term: str, base_dir: str):
     """Execute the find command and display results"""
     try:
@@ -77,6 +77,7 @@ def _perform_search(search_term: str, base_dir: str):
         logger.error(f"Error performing search: {e}")
 
 
+# --------------------------------------- create_subparser ---------------------------------------
 def create_subparser(subparsers):
     command_parser = subparsers.add_parser(
         "localMusicSearch",

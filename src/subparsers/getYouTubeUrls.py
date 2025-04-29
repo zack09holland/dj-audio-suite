@@ -1,5 +1,7 @@
 import pandas as pd
-import subprocess
+
+# Utils
+from src.utils.ytDownloader import search_youtube_url
 
 from src.config import get_logger
 
@@ -16,37 +18,38 @@ def get_youtube_urls(args):
     df = pd.read_excel(input_file)
 
     # Add a new column for YouTube URLs if it doesn't exist
-    if "YOUTUBE_URL" not in df.columns:
-        df["YOUTUBE_URL"] = ""
+    if "URL" not in df.columns:
+        df["URL"] = ""
 
-    # Function to search and get YouTube URL
-    def search_youtube_url(artist, title):
-        query = f"ytsearch1:{artist} - {title}"
-        try:
-            result = subprocess.run(
-                ["yt-dlp", query, "--skip-download", "--print", "%(webpage_url)s"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                text=True,
-            )
-            url = result.stdout.strip()
-            return url if url.startswith("http") else None
-        except Exception as e:
-            logger.error(f"Error fetching URL for {artist} - {title}: {e}")
-            return None
+    found_rows = []
+    not_found_rows = []
 
     # Loop through each row
     for idx, row in df.iterrows():
-        artist = row.get("ZARTISTNAME", "")
-        title = row.get("ZTITLE", "")
+        artist = row.get("ZARTISTNAME") or row.get("artist") or row.get("Artist")
+        title = row.get("ZTITLE") or row.get("title") or row.get("Title")
+
         if pd.notna(artist) and pd.notna(title):
             logger.info(f"Searching for: {artist} - {title}")
             url = search_youtube_url(artist, title)
-            df.at[idx, "YOUTUBE_URL"] = url
+            if url:
+                row["URL"] = url
+                found_rows.append(row)
+            else:
+                not_found_rows.append(row)
 
-    # Save the new file
-    df.to_excel(output_file, index=False)
-    logger.info(f"Done! Results saved to {output_file}")
+    # Create DataFrames
+    found_df = pd.DataFrame(found_rows)
+    not_found_df = pd.DataFrame(not_found_rows)
+
+    # Save both DataFrames into one Excel file with two sheets
+    with pd.ExcelWriter(output_file) as writer:
+        found_df.to_excel(writer, sheet_name="Found", index=False)
+        not_found_df.to_excel(writer, sheet_name="Not found", index=False)
+
+    logger.info(
+        f"Done! {len(found_df)} songs found, {len(not_found_df)} not found. Results saved to {output_file}"
+    )
 
 
 # --------------------------------------- create_subparser ---------------------------------------

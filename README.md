@@ -58,10 +58,11 @@ Metadata and thumbnails will be embedded into the audio files.
 
 The script logs its progress and any errors encountered during execution. Logs can be viewed in the console or configured to be saved to a file by modifying the logger configuration in src/config.py.
 
-## Troubleshooting
-File Not Found: Ensure the Excel file path provided in the --file argument is correct.
-Missing Columns: Ensure the Excel file contains a column named URL.
-Download Errors: Check the logs for details about the error. Common issues include invalid URLs or network connectivity problems.
+## Development
+If you want to add additional commands to run, create a .py file in the subparsers directory and follow
+the format of the current subparser files.
+
+Also need to make sure you add the command to the "enabled commands" array in the config.toml file
 
 
 
