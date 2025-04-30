@@ -1,7 +1,6 @@
 import os
 import pandas as pd  # type: ignore
 import yt_dlp
-from yt_dlp.postprocessor import download_music_list
 
 # Utils
 from src.utils.ytDownloader import download_file
