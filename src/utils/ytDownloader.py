@@ -65,4 +65,4 @@ def download_file(outtmpl, url):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-    logger.info(f"Successfully downloaded: {full_path}")
+    logger.info(f"Successfully downloaded: {outtmpl}")
