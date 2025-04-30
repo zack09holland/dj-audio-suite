@@ -37,6 +37,7 @@ GENRE_MAPPING = {
     "Mainstage": "Electronic",
     "Indie Dance": "Dance",
     "Dance / Electro Pop": "Dance",
+    "Dance / Electro Pop": "Dance",
     "Dance": "Dance",
     "Hard Techno": "Techno",
     "Techno": "Techno",
@@ -61,7 +62,11 @@ def get_genre(file_path):
 # --------------------------------- get_genre_folder ---------------------------------
 def get_genre_folder(genre):
     """Map genre to folder path"""
-    return GENRE_MAPPING.get(genre, "Unknown")
+    print(f"Genre: {genre}")
+    for key, folder in GENRE_MAPPING.items():
+        if key.lower() in genre.lower():
+            return folder
+    return "Unknown"
 
 
 # --------------------------------- ensure_directory_exists ---------------------------------
@@ -87,6 +92,7 @@ def process_file(file_path, destinations, transfer_type):
 
     for dest in destinations:
         genre_folder = get_genre_folder(genre)
+        print(genre_folder)
         full_dest = os.path.join(dest, genre_folder)
         ensure_directory_exists(full_dest)
 
