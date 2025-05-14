@@ -18,6 +18,7 @@ SUPPORTED_FORMATS = (".mp3", ".m4a", ".flac", ".wav", ".opus")
 
 # Genre to folder mapping
 GENRE_MAPPING = {
+    "Acapella": "Acapela",
     "House": "House",
     "Bass House": "House/Bass House",
     "Afro House": "House/Afro House",
@@ -42,6 +43,9 @@ GENRE_MAPPING = {
     "Hard Techno": "Techno",
     "Techno": "Techno",
     "Rap": "Hip Hop",
+    "UK Garage": "Electronic",
+    "R&B & Soul": "Hip Hop",
+    "R&B": "Hip Hop",
 }
 
 
