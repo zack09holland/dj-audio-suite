@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd  # type: ignore
 
 # Utils
 from src.utils.ytDownloader import search_youtube_url

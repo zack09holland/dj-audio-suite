@@ -2,6 +2,15 @@ import pandas as pd
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 
+# ----------------------------------------------------------------------------------------------------
+# INACTIVE - ExcelWorkbookController.py
+# - A class to handle Excel workbook operations, including loading, saving, and manipulating sheets.
+# - It uses the openpyxl library to manage Excel files and pandas for DataFrame operations.
+# - The class provides methods to initialize a workbook, add DataFrames to sheets, reset sheets, and highlight rows based on conditions.
+# - It also includes a method to list all sheets in the workbook.
+#
+# ----------------------------------------------------------------------------------------------------
+
 
 class ExcelWorkbookController:
     def __init__(self, file_path):

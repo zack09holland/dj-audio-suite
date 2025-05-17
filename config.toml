@@ -10,6 +10,7 @@ enabled_commands=[
   "convertToALAC",
   "getYouTubeUrls",
   "search_1001tracklists",
-  "cleanMetadata"
+  "cleanMetadata",
+  "getSongInfo"
 ]
 

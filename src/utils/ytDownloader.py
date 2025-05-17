@@ -1,4 +1,5 @@
 import subprocess
+
 from yt_dlp.postprocessor import MetadataParserPP
 import yt_dlp
 from src.config import get_logger
@@ -25,7 +26,20 @@ def search_youtube_url(artist, title):
 
 
 # --------------------------------- downloadFile ---------------------------------
-def download_file(outtmpl, url):
+def download_file(outtmpl, url, metadata=None):
+    post_args = [
+        "-c:v",
+        "mjpeg",
+        "-vf",
+        "crop='if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'",
+    ]
+
+    # Add metadata override arguments
+    if metadata:
+        if metadata.get("title"):
+            post_args += ["-metadata", f"title={metadata['title']}"]
+        if metadata.get("artist"):
+            post_args += ["-metadata", f"artist={metadata['artist']}"]
 
     ydl_opts = {
         "format": "bestaudio/best",
@@ -53,12 +67,7 @@ def download_file(outtmpl, url):
                 ],
             },
         ],
-        "postprocessor_args": [
-            "-c:v",
-            "mjpeg",
-            "-vf",
-            "crop='if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'",
-        ],
+        "postprocessor_args": post_args,
         "quiet": False,
         "progress_hooks": [lambda d: logger.info(d.get("_percent_str", ""))],
     }
