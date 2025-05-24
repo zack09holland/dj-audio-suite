@@ -99,10 +99,12 @@ def download_music_from_xlsx(args):
 
             # Download the file using yt-dlp
             logger.info(f"Downloading {url} to {outtmpl}")
-            # download_file(outtmpl, url, metadata={"title": title, "artist": artist_name})
+            download_file(
+                outtmpl, url, metadata={"title": title, "artist": artist_name}
+            )
 
             # Append the newly downloaded file to the past downloads sheet
-            # append_to_past_downloads(file, url, title, artist_name)
+            append_to_past_downloads(file, url, title, artist_name)
         except Exception as e:
             logger.error(f"Error processing URL {url}: {e}")
 
