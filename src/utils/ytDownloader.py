@@ -4,6 +4,9 @@ from yt_dlp.postprocessor import MetadataParserPP
 import yt_dlp
 from src.config import get_logger
 
+# Utils
+from src.utils.metadata import clean_keywords
+
 logger = get_logger(__name__)
 
 
@@ -37,9 +40,11 @@ def download_file(outtmpl, url, metadata=None):
     # Add metadata override arguments
     if metadata:
         if metadata.get("title"):
-            post_args += ["-metadata", f"title={metadata['title']}"]
+            cleaned_title = clean_keywords(metadata["title"])
+            post_args += ["-metadata", f"title={cleaned_title}"]
         if metadata.get("artist"):
-            post_args += ["-metadata", f"artist={metadata['artist']}"]
+            cleaned_artist = clean_keywords(metadata["artist"])
+            post_args += ["-metadata", f"artist={cleaned_artist}"]
 
     ydl_opts = {
         "format": "bestaudio/best",

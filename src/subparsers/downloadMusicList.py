@@ -5,6 +5,8 @@ import yt_dlp
 # Utils
 from src.utils.ytDownloader import download_file
 from src.utils.xlsx import append_to_past_downloads
+from src.utils.metadata import clean_keywords
+
 from src.config import get_logger
 
 logger = get_logger(__name__)
@@ -42,7 +44,7 @@ def download_music_from_xlsx(args):
         logger.error(f"Error reading Excel file: {e}")
         return
 
-    # Check if the DataFrame is empty
+    # Create output directory if it doesn't exist
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir)
         logger.info(f"Created output directory: {output_dir}")
@@ -55,7 +57,8 @@ def download_music_from_xlsx(args):
             continue
 
         try:
-            # Simulate metadata extraction
+            # Simulate metadata extraction to get title and artist
+            # using yt-dlp to extract metadata without downloading
             with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
                 info_dict = ydl.extract_info(url, download=False)
                 title_raw = (
@@ -72,6 +75,7 @@ def download_music_from_xlsx(args):
                     .strip()
                     .replace("/", "-")
                 )
+
                 # Use semantic metadata if available
                 track = info_dict.get("track")
                 artist = info_dict.get("artist")
@@ -86,7 +90,12 @@ def download_music_from_xlsx(args):
                     title = title_raw
                     artist_name = uploader
 
-            base_name = f"{artist_name} - {title}.m4a"
+            # Clean up both artist and title using the shared keyword cleaner
+            cleaned_title = clean_keywords(title)
+            cleaned_artist_name = clean_keywords(artist_name)
+
+            # Set the base name for the file
+            base_name = f"{cleaned_artist_name} - {cleaned_title}.m4a"
 
             # Check if file already exists
             full_path = os.path.join(output_dir, base_name) if output_dir else base_name
@@ -100,7 +109,9 @@ def download_music_from_xlsx(args):
             # Download the file using yt-dlp
             logger.info(f"Downloading {url} to {outtmpl}")
             download_file(
-                outtmpl, url, metadata={"title": title, "artist": artist_name}
+                outtmpl,
+                url,
+                metadata={"title": cleaned_title, "artist": cleaned_artist_name},
             )
 
             # Append the newly downloaded file to the past downloads sheet

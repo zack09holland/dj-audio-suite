@@ -1,6 +1,7 @@
 from mutagen.mp4 import MP4
 import unicodedata
 import string
+import re
 
 
 # --------------------------------- clean_title_metadata ---------------------------------
@@ -26,6 +27,18 @@ def clean_title_metadata(file_path):
             print("No ' - ' found in title, nothing updated.")
     except Exception as e:
         print(f"Error: {e}")
+
+
+# --------------------------------- clean_keywords ---------------------------------
+REMOVE_KEYWORDS = ["OUT NOW", "FREE DOWNLOAD"]
+
+
+def clean_keywords(text, keywords=REMOVE_KEYWORDS):
+    for keyword in keywords:
+        # Remove 1 character before and 1 character after the keyword (if present)
+        pattern = rf".?{re.escape(keyword)}.?"
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+    return text.strip()
 
 
 # --------------------------------- remove_special_characters ---------------------------------
