@@ -30,7 +30,7 @@ def clean_title_metadata(file_path):
 
 
 # --------------------------------- clean_keywords ---------------------------------
-REMOVE_KEYWORDS = ["OUT NOW", "FREE DOWNLOAD"]
+REMOVE_KEYWORDS = ["OUT NOW", "FREE DOWNLOAD", "Free DL", "FREE DL"]
 
 
 def clean_keywords(text, keywords=REMOVE_KEYWORDS):
