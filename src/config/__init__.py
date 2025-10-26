@@ -60,6 +60,16 @@ def get_enabled_commands():
     return get_config("general", "enabled_commands")
 
 
+# --------------------------------------- get_genres ---------------------------------------
+def get_genre_mapping():
+    return get_config("general", "GENRE_MAPPING")
+
+
+# --------------------------------------- get_supported_formats ---------------------------------------
+def get_supported_formats():
+    return get_config("general", "SUPPORTED_FORMATS")
+
+
 # --------------------------------------- get_logger ---------------------------------------
 # - Create a logger with colored output
 def get_logger(name):

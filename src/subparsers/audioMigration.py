@@ -2,7 +2,7 @@ from tinytag import TinyTag  # type: ignore
 import os
 import shutil
 from colorama import init, Fore, Style
-from src.config import get_logger
+from src.config import get_logger, get_genre_mapping, get_supported_formats
 
 # Initialize colorama and logger
 init()
@@ -14,39 +14,12 @@ DEFAULT_DESTINATIONS = [
     "/mnt/c/Users/zack09holland/Music/Categories/",
     # "/mnt/m/Categories/",
 ]
-SUPPORTED_FORMATS = (".mp3", ".m4a", ".flac", ".wav", ".opus")
+
+# Supported audio formats
+SUPPORTED_FORMATS = get_supported_formats()
 
 # Genre to folder mapping
-GENRE_MAPPING = {
-    "Acapella": "Acapela",
-    "House": "House",
-    "Bass House": "House/Bass House",
-    "Afro House": "House/Afro House",
-    "Funky House": "House/Funky House",
-    "Latin House": "House/Latin House",
-    "Latin Tech House": "House/Latin House",
-    "Tech House": "House/Tech House",
-    "Deep House": "House/Deep House",
-    "Progressive House": "House/Progressive House",
-    "Melodic House & Techno": "House/Melodic House & Techno",
-    "Hip Hop House": "House/Hip Hop House",
-    "Hip Hop": "Hip Hop",
-    "Drum & Bass": "Drum and Bass",
-    "Dubstep": "Electronic",
-    "Dance & EDM": "Electronic",
-    "Electronic": "Electronic",
-    "Mainstage": "Electronic",
-    "Indie Dance": "Dance",
-    "Dance / Electro Pop": "Dance",
-    "Dance / Electro Pop": "Dance",
-    "Dance": "Dance",
-    "Hard Techno": "Techno",
-    "Techno": "Techno",
-    "Rap": "Hip Hop",
-    "UK Garage": "Electronic",
-    "R&B & Soul": "Hip Hop",
-    "R&B": "Hip Hop",
-}
+GENRE_MAPPING = get_genre_mapping()
 
 
 # --------------------------------- get_genre ---------------------------------
