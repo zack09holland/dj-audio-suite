@@ -61,11 +61,13 @@ def get_enabled_commands():
 
 
 # --------------------------------------- get_genres ---------------------------------------
+# DOESNT WORK YET
 def get_genre_mapping():
     return get_config("general", "GENRE_MAPPING")
 
 
 # --------------------------------------- get_supported_formats ---------------------------------------
+# DOESNT WORK YET
 def get_supported_formats():
     return get_config("general", "SUPPORTED_FORMATS")
 

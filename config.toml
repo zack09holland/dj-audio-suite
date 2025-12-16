@@ -13,37 +13,3 @@ enabled_commands=[
   "cleanMetadata",
   "getSongInfo"
 ]
-
-SUPPORTED_FORMATS = (".mp3", ".m4a", ".flac", ".wav", ".opus")
-
-GENRE_MAPPING = {
-    "Acapella": "Acapela",
-    "House": "House",
-    "Bass House": "House/Bass House",
-    "Afro House": "House/Afro House",
-    "Funky House": "House/Funky House",
-    "Latin House": "House/Latin House",
-    "Latin Tech House": "House/Latin House",
-    "Tech House": "House/Tech House",
-    "Deep House": "House/Deep House",
-    "Progressive House": "House/Progressive House",
-    "Melodic House & Techno": "House/Melodic House & Techno",
-    "Hip Hop House": "House/Hip Hop House",
-    "Hip Hop": "Hip Hop",
-    "Drum & Bass": "Drum and Bass",
-    "Dubstep": "Electronic",
-    "Dance & EDM": "Electronic",
-    "Electronic": "Electronic",
-    "Mainstage": "Electronic",
-    "Indie Dance": "Dance",
-    "Dance / Electro Pop": "Dance",
-    "Dance / Pop": "Dance",
-    "Dance": "Dance",
-    "Hard Techno": "Techno",
-    "Techno": "Techno",
-    "Rap": "Hip Hop",
-    "UK Garage": "Electronic",
-    "R&B & Soul": "Hip Hop",
-    "R&B": "Hip Hop",
-    "Minimal": "Techno",
-}
