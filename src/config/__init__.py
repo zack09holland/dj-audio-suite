@@ -30,11 +30,6 @@ l_formatter = logging.Formatter(
 
 stream_handler.setFormatter(l_formatter)
 
-# File handler for logging to a file
-f_handler = logging.FileHandler("app.log")
-f_handler.setLevel(logging.DEBUG)
-f_handler.setFormatter(l_formatter)
-
 
 # --------------------------------------- get_config ---------------------------------------
 def get_config(section: str, p_name: str = None, default_value=None):
@@ -70,6 +65,12 @@ def get_genre_mapping():
 # DOESNT WORK YET
 def get_supported_formats():
     return get_config("general", "SUPPORTED_FORMATS")
+
+
+# File handler for logging to a file
+# f_handler = logging.FileHandler("app.log")
+# f_handler.setLevel(logging.DEBUG)
+# f_handler.setFormatter(l_formatter)
 
 
 # --------------------------------------- get_logger ---------------------------------------
