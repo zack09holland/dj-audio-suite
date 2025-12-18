@@ -58,6 +58,15 @@ Metadata and thumbnails will be embedded into the audio files.
 
 The script logs its progress and any errors encountered during execution. Logs can be viewed in the console or configured to be saved to a file by modifying the logger configuration in src/config.py.
 
+The XLSX file used to download music will contain a tab that shows all the songs you have downloaded so you can confirm if a particular song has already been downloaded before. 
+
+Columns that get generated include:
+- Song URL
+- Title
+- Uploader
+
+Additional columns can be added to further organize/parse your downloads (favorite, etc.)
+
 ## Development
 If you want to add additional commands to run, create a .py file in the subparsers directory and follow
 the format of the current subparser files.

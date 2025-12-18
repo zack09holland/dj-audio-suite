@@ -17,9 +17,11 @@ DEFAULT_DESTINATIONS = [
 SUPPORTED_FORMATS = (".mp3", ".m4a", ".flac", ".wav", ".opus")
 
 # Genre to folder mapping
+# Music Genre : Folder Name
 GENRE_MAPPING = {
     "Acapella": "Acapela",
     "House": "House",
+    "Electro House": "House",
     "Bass House": "House/Bass House",
     "Afro House": "House/Afro House",
     "Funky House": "House/Funky House",
