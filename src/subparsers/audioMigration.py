@@ -50,6 +50,7 @@ GENRE_MAPPING = {
     "UK Garage": "Electronic",
     "R&B & Soul": "Hip Hop",
     "R&B": "Hip Hop",
+    "Trap": "Trap",
 }
 
 
