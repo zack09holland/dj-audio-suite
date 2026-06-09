@@ -11,5 +11,7 @@ enabled_commands=[
   "getYouTubeUrls",
   "search_1001tracklists",
   "cleanMetadata",
-  "getSongInfo"
+  "getSongInfo",
+  "downloadTest",
+  "audioMigrationTest"
 ]

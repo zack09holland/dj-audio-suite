@@ -12,7 +12,6 @@ from src.config.ColorFormatter import ColorFormatter
 path = pathlib.Path(__file__).parent.parent.parent / "config.toml"
 with path.open(mode="rb") as fp:
     _conf = tomli.load(fp)
-    print(_conf)
 
 
 # --------------------------------------- Logger Stream Handler ---------------------------------------

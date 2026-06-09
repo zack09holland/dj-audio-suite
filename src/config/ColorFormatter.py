@@ -17,6 +17,11 @@ class ColorFormatter(logging.Formatter):
 
     def format(self, record):
         log_color = self.COLORS.get(record.levelname, "")
+
+        # Override color for specific message patterns
+        if record.levelname == "INFO" and str(record.msg).startswith("Already exists, skipping:"):
+            log_color = Fore.YELLOW
+
         reset = Style.RESET_ALL
 
         # Color the level name (e.g., ERROR, INFO, DEBUG)

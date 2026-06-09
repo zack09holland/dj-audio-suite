@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd  # type: ignore
 
 
@@ -8,10 +10,15 @@ def append_to_past_downloads(file, url, title, uploader):
         past_df = pd.read_excel(file, sheet_name="pastDownloads")
     except (FileNotFoundError, ValueError):
         # If the file or sheet doesn't exist, start a new DataFrame
-        past_df = pd.DataFrame(columns=["URL", "Title", "Uploader"])
+        past_df = pd.DataFrame(columns=["URL", "Title", "Uploader", "Date Downloaded"])
 
     # Create the new row
-    new_row = pd.DataFrame([{"URL": url, "Title": title, "Uploader": uploader}])
+    new_row = pd.DataFrame([{
+        "URL": url,
+        "Title": title,
+        "Uploader": uploader,
+        "Date Downloaded": datetime.date.today(),
+    }])
 
     # Append and write back
     updated_df = pd.concat([past_df, new_row], ignore_index=True)
