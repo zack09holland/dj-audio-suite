@@ -1,79 +1,204 @@
-# Download Music List Script
+# DJAudioSuite
 
-This script is designed to download music files from URLs specified in an Excel file. It uses the `yt-dlp` library to handle downloading and metadata processing. The script supports downloading audio files, embedding metadata, and saving the files to a specified directory.
+A CLI toolkit for DJs and music collectors to download, organize, and manage audio files. Built around `yt-dlp` with a clean terminal UI including colored logs and an in-place progress bar.
+
+---
 
 ## Features
-- Reads a list of music download URLs from an Excel file.
-- Downloads audio files in the best available quality.
-- Embeds metadata and thumbnails into the downloaded files.
-- Supports specifying an output directory for saving the files.
+
+- Download audio from SoundCloud, YouTube, and other yt-dlp supported sources
+- Embeds metadata (title, artist, year) and album art thumbnails into downloaded files
+- Organizes music by genre into folder categories
+- Duplicate detection — checks both the local filesystem and the `pastDownloads` Excel sheet before downloading
+- Converts audio files to ALAC/M4A format
+- Searches your local music library by artist or song name
+- Looks up YouTube URLs from an Excel file of artist/title pairs
+- Cleans messy title metadata from MP4 files
+- Color-coded logs with an animated download progress bar
+
+---
 
 ## Prerequisites
-Before running the script, ensure you have the following installed:
-1. Python 3.10 or higher.
-2. Required Python libraries:
-   - `pandas`
-   - `yt-dlp`
-   - `openpyxl` (for reading Excel files)
 
-You can install the required libraries using the following command:
+- Python 3.10 or higher
+- `ffmpeg` installed and available on your PATH (required for audio extraction and thumbnail embedding)
+
+Install Python dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-# Usage
-1. Prepare the Excel File
-Create an Excel file with a sheet named music-download-list. The sheet should contain a column named URL with the URLs of the music files you want to download.
+---
 
-2. Run the Script
-To run the script, use the following command:
+## Usage
+
+All commands are run through `run.py`:
+
 ```bash
-python run.py downloadMusicList --file <path_to_excel_file> --output <output_directory>
+python run.py <command> [options]
 ```
 
-## Arguments:
---file (required): Path to the Excel file containing the music download list.
---output (optional): Directory to save the downloaded files. If not specified, the current directory will be used.
+**Tip:** Create a shell alias so you can run commands from any directory:
 
-### Example:
-```zsh
-python run.py downloadMusicList --file 'C:\Users\USERNAME\Desktop\music-download-list.xlsx' --output <file_path>
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+alias djas='python /mnt/c/Users/zack09holland/MyDrive/Programming/python/DJAudioSuite/run.py'
 ```
 
-If using WSL on windows:
-```zsh
-python run.py downloadMusicList '/mnt/c/Users/zack09holland/Downloads/music-download-list.xlsx' --output <output_file_path>
+---
+
+## Commands
+
+### `downloadMusicList`
+Aliases: `download`, `download-music`, `dl`
+
+Downloads audio files from URLs listed in an Excel file. Extracts metadata via yt-dlp, embeds it into the file along with the album art thumbnail, and logs the download to the `pastDownloads` sheet.
+
+Skips files that already exist on disk or are already recorded in the `pastDownloads` sheet.
+
+```bash
+python run.py downloadMusicList --file <path_to_excel> --output <output_directory>
 ```
 
-Recommended to make the python file an executable so you don't need to use `python` in the front of the call.
-Better yet, I recommend creating an alias in your .bashrc or .zshrc file to do the work for you so you can run the commands from any directory.
-Like so:
-```zsh
-alias run='python /mnt/c/Users/zack09holland/MyDrive/Programming/python/DJAudioSuite/run.py
+| Argument | Required | Description |
+|---|---|---|
+| `--file` | Yes | Path to the Excel file containing a `URL` column |
+| `--output` | No | Directory to save downloaded files (defaults to current directory) |
+
+**Excel sheet:** The input sheet should be named one of: `music-download-list`, `toDownload`, `Found`, or `found`, with a `URL` column.
+
+**WSL example:**
+```bash
+python run.py dl --file '/mnt/c/Users/zack09holland/Downloads/music-download-list.xlsx' --output '/mnt/c/Users/zack09holland/Downloads/downloaded'
 ```
 
-3. Output
-The downloaded audio files will be saved in the specified output directory (or the current directory if no output directory is provided).
-Metadata and thumbnails will be embedded into the audio files.
+---
 
-The script logs its progress and any errors encountered during execution. Logs can be viewed in the console or configured to be saved to a file by modifying the logger configuration in src/config.py.
+### `audioMigration`
+Aliases: `migrate`, `audiomigrate`, `am`, `transfer`, `move`
 
-The XLSX file used to download music will contain a tab that shows all the songs you have downloaded so you can confirm if a particular song has already been downloaded before. 
+Reads genre metadata from audio files and moves/copies them into genre-based subfolders.
 
-Columns that get generated include:
-- Song URL
-- Title
-- Uploader
+```bash
+python run.py audioMigration --source <source_dir> --destinations <dest1> [dest2] --transfer-type <move|copy|both>
+```
 
-Additional columns can be added to further organize/parse your downloads (favorite, etc.)
+| Argument | Required | Description |
+|---|---|---|
+| `--source` | No | Source directory (defaults to `refined-audio/`) |
+| `--destinations` | No | One or more destination directories |
+| `--transfer-type` | Yes | `move`, `copy`, or `both` |
 
-## Development
-If you want to add additional commands to run, create a .py file in the subparsers directory and follow
-the format of the current subparser files.
+Supported formats: `.mp3`, `.m4a`, `.flac`, `.wav`, `.opus`
 
-Also need to make sure you add the command to the "enabled commands" array in the config.toml file
+---
 
+### `localMusicSearch`
+Aliases: none
 
+Searches your local music library for files matching an artist or song name.
 
-# License
-This project is licensed under the MIT License. See the LICENSE file for details. ```
+```bash
+python run.py localMusicSearch --search_term <query> --music_dir <directory>
+```
+
+---
+
+### `convertToALAC`
+Aliases: none
+
+Converts `.opus`, `.wav`, or `.flac` files to ALAC (`.m4a`) using ffmpeg.
+
+```bash
+python run.py convertToALAC --input <file_or_directory> --output_folder <output_directory>
+```
+
+---
+
+### `getYouTubeUrls`
+Aliases: none
+
+Reads an Excel file with `Artist` and `Title` columns and writes the best matching YouTube URL for each row into a new column.
+
+```bash
+python run.py getYouTubeUrls --file <path_to_excel>
+```
+
+Output is saved as `<original_filename>_with_urls.xlsx`.
+
+---
+
+### `getSongInfo`
+Aliases: none
+
+Reads the `pastDownloads` sheet and fetches additional metadata (title, uploader) for each entry via yt-dlp.
+
+```bash
+python run.py getSongInfo --file <path_to_excel>
+```
+
+---
+
+### `cleanMetadata`
+Aliases: none
+
+Removes the artist prefix from an MP4 file's title tag (everything before the first ` - `).
+
+```bash
+python run.py cleanMetadata --file <path_to_m4a>
+```
+
+---
+
+### `search_1001tracklists`
+> **Work in progress** — not yet functional.
+
+---
+
+### `downloadTest`
+Aliases: `dl-test`, `test-dl`
+
+Runs a simulated download with fake tracks to preview the terminal output and progress bar without making any real network requests.
+
+```bash
+python run.py downloadTest
+```
+
+---
+
+### `audioMigrationTest`
+Aliases: `am-test`, `test-am`
+
+Runs a simulated audio migration across fake tracks and genres to preview the terminal output without touching real files.
+
+```bash
+python run.py audioMigrationTest
+```
+
+---
+
+## pastDownloads Sheet
+
+Each successful download appends a row to the `pastDownloads` sheet in your Excel file:
+
+| Column | Description |
+|---|---|
+| `Date Downloaded` | Date the file was downloaded (`MM/DD/YYYY`) |
+| `URL` | Source URL |
+| `Title` | Track title |
+| `Uploader` | Artist / uploader name |
+
+---
+
+## Adding New Commands
+
+1. Create a new `.py` file in `src/subparsers/`
+2. Implement your logic and a `create_subparser(subparsers)` function following the pattern of existing subparsers
+3. Add the module name to `enabled_commands` in `config.toml`
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.

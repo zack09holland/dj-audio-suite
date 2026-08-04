@@ -3,8 +3,12 @@ import pandas as pd  # type: ignore
 import yt_dlp
 
 # Utils
-from src.utils.ytDownloader import download_file
-from src.utils.xlsx import append_to_past_downloads
+from src.utils.ytDownloader import download_file, YtDlpLogger
+from src.utils.xlsx import (
+    append_to_past_downloads,
+    append_to_failed_downloads,
+    is_already_downloaded,
+)
 from src.utils.metadata import clean_keywords
 
 from src.config import get_logger
@@ -59,7 +63,9 @@ def download_music_from_xlsx(args):
         try:
             # Simulate metadata extraction to get title and artist
             # using yt-dlp to extract metadata without downloading
-            with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+            with yt_dlp.YoutubeDL(
+                {"quiet": True, "logger": YtDlpLogger(logger)}
+            ) as ydl:
                 info_dict = ydl.extract_info(url, download=False)
                 title_raw = (
                     info_dict.get("title", "Unknown Title").strip().replace("/", "-")
@@ -97,10 +103,17 @@ def download_music_from_xlsx(args):
             # Set the base name for the file
             base_name = f"{cleaned_artist_name} - {cleaned_title}.m4a"
 
-            # Check if file already exists
+            # Check if file already exists on disk
             full_path = os.path.join(output_dir, base_name) if output_dir else base_name
             if os.path.exists(full_path):
                 logger.info(f"Already exists, skipping: {full_path}")
+                continue
+
+            # Check if already logged in pastDownloads sheet
+            if is_already_downloaded(file, cleaned_title, cleaned_artist_name):
+                logger.info(
+                    f"Already exists, skipping: {cleaned_artist_name} - {cleaned_title}"
+                )
                 continue
 
             # Create filename template to output with yt-dlp
@@ -117,7 +130,9 @@ def download_music_from_xlsx(args):
             # Append the newly downloaded file to the past downloads sheet
             append_to_past_downloads(file, url, title, artist_name)
         except Exception as e:
-            logger.error(f"Error processing URL {url}: {e}")
+            reason = str(e).removeprefix("ERROR: ").strip()
+            logger.error(f"Error processing URL {url}: {reason}")
+            # append_to_failed_downloads(file, url, reason)
 
 
 # --------------------------------------- create_subparser ---------------------------------------

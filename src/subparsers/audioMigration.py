@@ -1,4 +1,5 @@
 from tinytag import TinyTag  # type: ignore
+import json
 import os
 import shutil
 from colorama import init, Fore, Style
@@ -16,42 +17,10 @@ DEFAULT_DESTINATIONS = [
 ]
 SUPPORTED_FORMATS = (".mp3", ".m4a", ".flac", ".wav", ".opus")
 
-# Genre to folder mapping
-# Music Genre : Folder Name
-GENRE_MAPPING = {
-    "Acapella": "Acapela",
-    "House": "House",
-    "Electro House": "House",
-    "Bass House": "House/Bass House",
-    "Afro House": "House/Afro House",
-    "Funky House": "House/Funky House",
-    "Latin House": "House/Latin House",
-    "Latin Tech House": "House/Latin House",
-    "Tech House": "House/Tech House",
-    "Deep House": "House/Deep House",
-    "Progressive House": "House/Progressive House",
-    "Melodic House & Techno": "House/Melodic House & Techno",
-    "Hip Hop House": "House/Hip Hop House",
-    "Hip Hop": "Hip Hop",
-    "Drum & Bass": "Drum and Bass",
-    "Dubstep": "Electronic",
-    "Dance & EDM": "Electronic",
-    "Electronic": "Electronic",
-    "Mainstage": "Electronic",
-    "Indie Dance": "Dance",
-    "Dance / Electro Pop": "Dance",
-    "Dance / Electro Pop": "Dance",
-    "Dance": "Dance",
-    "Hard Techno": "Techno",
-    "Techno": "Techno",
-    "Trance": "Trance",
-    "Psytrance": "Trance/Psytrance",
-    "Rap": "Hip Hop",
-    "UK Garage": "Electronic",
-    "R&B & Soul": "Hip Hop",
-    "R&B": "Hip Hop",
-    "Trap": "Trap",
-}
+# Genre to folder mapping — edit src/config/genre_mapping.json to add/remove entries
+_GENRE_MAPPING_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "genre_mapping.json")
+with open(_GENRE_MAPPING_PATH, "r", encoding="utf-8") as _f:
+    GENRE_MAPPING = json.load(_f)
 
 
 # --------------------------------- get_genre ---------------------------------
