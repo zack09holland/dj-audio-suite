@@ -1,8 +1,15 @@
+import os
 import re
-import sys
+import shutil
 import subprocess
 
-from colorama import Fore, Style
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
+    TimeRemainingColumn,
+)
 from yt_dlp.postprocessor import MetadataParserPP
 import yt_dlp
 from src.config import get_logger
@@ -11,6 +18,15 @@ from src.config import get_logger
 from src.utils.metadata import clean_keywords
 
 logger = get_logger(__name__)
+
+# Detect the first available JS runtime for yt-dlp YouTube extraction
+def _detect_js_runtime():
+    for runtime in ("node", "nodejs", "deno"):
+        if shutil.which(runtime):
+            return runtime
+    return None
+
+_JS_RUNTIME = _detect_js_runtime()
 
 
 # --------------------------------- YtDlpLogger ---------------------------------
@@ -40,12 +56,7 @@ class YtDlpLogger:
             return
         if self._SUPPRESS_RE.match(msg):
             return
-        # Show destination file path (prints before the progress bar starts)
-        if "[download] Destination:" in msg:
-            dest = msg.split("Destination:", 1)[1].strip()
-            self._log.info(f"  -> Saving to: {dest}")
-            return
-        # Suppress all [download] fragment/progress lines — the bar handles these
+        # Suppress all [download] lines — destination is logged before the bar starts
         if msg.startswith("[download]"):
             return
 
@@ -55,8 +66,8 @@ class YtDlpLogger:
     def warning(self, msg):
         self._log.warning(msg)
 
-    def error(self, msg):
-        self._log.error(msg)
+    def error(self, _msg):
+        pass  # errors are caught and reported by the caller's except block
 
 
 # --------------------------------- search_youtube_url ---------------------------------
@@ -95,8 +106,6 @@ def download_file(outtmpl, url, metadata=None):
             cleaned_artist = clean_keywords(metadata["artist"])
             post_args += ["-metadata", f"artist={cleaned_artist}"]
 
-    # Unified progress bar covering download (0-80%) + post-processing (80-100%)
-    _BAR_WIDTH = 40
     # Maps yt-dlp postprocessor class names to (start%, end%, label)
     _PP_SLOTS = {
         "FixupM4a":           (80.0,  85.0, "Fixing container"),
@@ -104,29 +113,23 @@ def download_file(outtmpl, url, metadata=None):
         "FFmpegMetadata":     (90.0,  95.0, "Writing metadata"),
         "EmbedThumbnail":     (95.0, 100.0, "Embedding thumbnail"),
     }
-    # Guard: once we've printed the final 100% bar, ignore all further hook calls
-    _bar_done = [False]
+    _bitrate = [None]
 
-    def _draw(pct: float, suffix: str = ""):
-        if _bar_done[0]:
-            return
-        filled = int(_BAR_WIDTH * pct / 100)
-        bar = (
-            Fore.GREEN + "█" * filled
-            + Style.DIM + "░" * (_BAR_WIDTH - filled)
-            + Style.RESET_ALL
-        )
-        line = f"\r  [{bar}] {Fore.CYAN}{pct:5.1f}%{Style.RESET_ALL}"
-        if suffix:
-            line += f"  {suffix}"
-        # Pad to overwrite any leftover chars from a longer previous line
-        sys.stdout.write(line.ljust(120))
-        sys.stdout.flush()
+    progress = Progress(
+        TextColumn("  "),
+        BarColumn(bar_width=40, complete_style="green", finished_style="green"),
+        TaskProgressColumn(),
+        TextColumn("[cyan]{task.fields[speed]}[/cyan]"),
+        TimeRemainingColumn(),
+        TextColumn("[dim]{task.description}[/dim]"),
+        transient=False,
+        refresh_per_second=10,
+    )
+    task_id = progress.add_task("Downloading", total=100.0, speed="")
 
     def _on_progress(d):
         status = d.get("status")
         if status == "downloading":
-            # HLS streams report per-fragment; use fragment counts when available
             frag_idx = d.get("fragment_index")
             frag_cnt = d.get("fragment_count")
             if frag_idx is not None and frag_cnt:
@@ -138,36 +141,33 @@ def download_file(outtmpl, url, metadata=None):
                     return
             speed = d.get("_speed_str", "").strip()
             eta = d.get("_eta_str", "").strip()
-            # Download phase occupies 0-80% of the bar
-            _draw(dl_pct * 0.80, f"{speed}  eta {eta}")
+            suffix = f"{speed}  eta {eta}" if speed else ""
+            progress.update(task_id, completed=dl_pct * 0.80, speed=suffix, description="Downloading")
         elif status == "finished":
-            _draw(80.0, "Post-processing...")
+            info = d.get("info_dict", {})
+            _bitrate[0] = info.get("abr") or info.get("tbr")
+            progress.update(task_id, completed=80.0, speed="", description="Post-processing...")
 
     def _on_postprocessor(d):
         pp = d.get("postprocessor", "")
-        status = d.get("status")
+        pp_status = d.get("status")
         slot = _PP_SLOTS.get(pp)
         if slot is None:
             return
         start_pct, end_pct, label = slot
-        if status == "started":
-            _draw(start_pct, f"{label}...")
-        elif status == "finished":
+        if pp_status == "started":
+            progress.update(task_id, completed=start_pct, description=label + "...")
+        elif pp_status == "finished":
+            progress.update(task_id, completed=end_pct)
             if end_pct >= 100.0:
-                _bar_done[0] = True
-                filled = "█" * _BAR_WIDTH
-                sys.stdout.write(
-                    f"\r  [{Fore.GREEN}{filled}{Style.RESET_ALL}]"
-                    f" {Fore.GREEN}100.0%{Style.RESET_ALL}  Done!".ljust(120) + "\n"
-                )
-                sys.stdout.flush()
-            else:
-                _draw(end_pct)
+                progress.update(task_id, description="Done!")
 
     ydl_opts = {
         "format": "bestaudio/best",
         "extractaudio": True,
         "outtmpl": outtmpl,
+        **({"js_runtimes": {_JS_RUNTIME: {}}} if _JS_RUNTIME else {}),
+        "remote_components": ["ejs:github"],
         "writethumbnail": True,
         "postprocessors": [
             {"key": "FFmpegExtractAudio", "preferredcodec": "m4a"},
@@ -192,11 +192,16 @@ def download_file(outtmpl, url, metadata=None):
         ],
         "postprocessor_args": post_args,
         "quiet": True,
+        "noprogress": True,
         "logger": YtDlpLogger(logger),
         "progress_hooks": [_on_progress],
         "postprocessor_hooks": [_on_postprocessor],
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
-    logger.info(f"Successfully downloaded: {outtmpl}")
+    with progress:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+    bitrate_str = f" @ {_bitrate[0]:.0f}kbps" if _bitrate[0] else ""
+    name = os.path.basename(outtmpl).replace(".%(ext)s", "")
+    logger.info(f"Successfully downloaded: {name}{bitrate_str}")

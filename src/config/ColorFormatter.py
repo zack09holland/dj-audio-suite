@@ -17,30 +17,22 @@ class ColorFormatter(logging.Formatter):
 
     def format(self, record):
         log_color = self.COLORS.get(record.levelname, "")
+        msg_color = ""
 
         # Override color for specific message patterns
         if record.levelname == "INFO" and str(record.msg).startswith("Already exists, skipping:"):
             log_color = Fore.YELLOW
+            msg_color = Fore.YELLOW
+        elif record.levelname == "INFO" and str(record.msg).startswith("Successfully downloaded"):
+            msg_color = Fore.GREEN
 
         reset = Style.RESET_ALL
 
         # Color the level name (e.g., ERROR, INFO, DEBUG)
         record.levelname = f"{log_color}{record.levelname}{reset}"
+
+        # Color the message text where needed
+        if msg_color:
+            record.msg = f"{msg_color}{record.msg}{reset}"
+
         return super().format(record)
-
-    def debug(self, msg):
-        # For compatibility with youtube-dl, both debug and info are passed into debug
-        # You can distinguish them by the prefix '[debug] '
-        if msg.startswith("[debug] "):
-            pass
-        else:
-            self.info(msg)
-
-    def info(self, msg):
-        pass
-
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        print(msg)

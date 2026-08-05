@@ -1,19 +1,45 @@
 import os
+import re
 import pandas as pd  # type: ignore
 import yt_dlp
 
 # Utils
-from src.utils.ytDownloader import download_file, YtDlpLogger
+from src.utils.ytDownloader import download_file, YtDlpLogger, _JS_RUNTIME
 from src.utils.xlsx import (
     append_to_past_downloads,
     append_to_failed_downloads,
+    deduplicate_failed_downloads,
     is_already_downloaded,
+    mark_url_red,
 )
 from src.utils.metadata import clean_keywords
 
 from src.config import get_logger
 
 logger = get_logger(__name__)
+
+_SOURCE_MAP = {
+    "soundcloud.com": "SoundCloud",
+    "youtube.com": "YouTube",
+    "youtu.be": "YouTube",
+    "spotify.com": "Spotify",
+    "tidal.com": "Tidal",
+    "deezer.com": "Deezer",
+    "bandcamp.com": "Bandcamp",
+    "mixcloud.com": "Mixcloud",
+    "vimeo.com": "Vimeo",
+}
+
+def _parse_source(url: str) -> str:
+    match = re.search(r"https?://(?:www\.)?([^/]+)", url)
+    if not match:
+        return "Unknown"
+    domain = match.group(1).lower()
+    for key, label in _SOURCE_MAP.items():
+        if key in domain:
+            return label
+    # Fall back to the bare domain name, capitalized
+    return domain.split(".")[0].capitalize()
 
 
 # --------------------------------------- download_music_from_xlsx ---------------------------------------
@@ -34,16 +60,17 @@ def download_music_from_xlsx(args):
     try:
         # Try loading from available sheets
         if "music-download-list" in sheet_names:
-            df = pd.read_excel(file, sheet_name="music-download-list")
+            source_sheet = "music-download-list"
         elif "toDownload" in sheet_names:
-            df = pd.read_excel(file, sheet_name="toDownload")
+            source_sheet = "toDownload"
         elif "Found" in sheet_names:
-            df = pd.read_excel(file, sheet_name="Found")
+            source_sheet = "Found"
         elif "found" in sheet_names:
-            df = pd.read_excel(file, sheet_name="found")
+            source_sheet = "found"
         else:
             logger.error("No suitable sheet found in Excel file.")
             return
+        df = pd.read_excel(file, sheet_name=source_sheet)
     except Exception as e:
         logger.error(f"Error reading Excel file: {e}")
         return
@@ -61,10 +88,13 @@ def download_music_from_xlsx(args):
             continue
 
         try:
+            name = url  # fallback if metadata extraction fails
+            source = _parse_source(url)
+
             # Simulate metadata extraction to get title and artist
             # using yt-dlp to extract metadata without downloading
             with yt_dlp.YoutubeDL(
-                {"quiet": True, "logger": YtDlpLogger(logger)}
+                {"quiet": True, "logger": YtDlpLogger(logger), "remote_components": ["ejs:github"], **({"js_runtimes": {_JS_RUNTIME: {}}} if _JS_RUNTIME else {})}
             ) as ydl:
                 info_dict = ydl.extract_info(url, download=False)
                 title_raw = (
@@ -120,7 +150,10 @@ def download_music_from_xlsx(args):
             outtmpl = full_path.replace(".m4a", ".%(ext)s")
 
             # Download the file using yt-dlp
-            logger.info(f"Downloading {url} to {outtmpl}")
+            name = os.path.basename(outtmpl).replace(".%(ext)s", "")
+            source = _parse_source(url)
+            logger.info(f"Downloading > {name} | {source}")
+            logger.info(f"Saving to > {full_path}")
             download_file(
                 outtmpl,
                 url,
@@ -131,8 +164,11 @@ def download_music_from_xlsx(args):
             append_to_past_downloads(file, url, title, artist_name)
         except Exception as e:
             reason = str(e).removeprefix("ERROR: ").strip()
-            logger.error(f"Error processing URL {url}: {reason}")
-            # append_to_failed_downloads(file, url, reason)
+            logger.error(f"Error [{source}] {name}: {reason}")
+            append_to_failed_downloads(file, url, reason)
+            mark_url_red(file, url, source_sheet)
+
+    deduplicate_failed_downloads(file)
 
 
 # --------------------------------------- create_subparser ---------------------------------------
